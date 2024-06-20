@@ -7,19 +7,49 @@
 
 const sqlite3 = require("sqlite3").verbose();
 
-let db = new sqlite3.Database("./db/chinook.db");
-
-// insert one row into the student table
-db.run(
-  `INSERT INTO student(name, email) VALUES('이종현', '1428ksu@gmail.com')`,
-  function (err) {
-    if (err) {
-      return console.log(err.message);
-    }
-    // get the last insert id
-    console.log(`A row has been inserted with rowid ${this.lastID}`);
+// 데이터베이스 연결 생성
+let db = new sqlite3.Database("./mydatabase.db", (err) => {
+  if (err) {
+    console.error(err.message);
   }
-);
+  console.log("Connected to the mydatabase.db SQLite database.");
+});
 
-// close the database connection
-db.close();
+// students 테이블 생성
+db.serialize(() => {
+  db.run(
+    `CREATE TABLE IF NOT EXISTS students (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT,
+    age INTEGER
+  )`,
+    (err) => {
+      if (err) {
+        console.error(err.message);
+      }
+      console.log("Created students table.");
+    }
+  );
+
+  // 데이터 추가
+  let stmt = db.prepare("INSERT INTO students (name, age) VALUES (?, ?)");
+  stmt.run("구하림", 24);
+  stmt.run("구나경", 22);
+  stmt.finalize();
+
+  // 데이터 조회
+  db.each("SELECT id, name, age FROM students", (err, row) => {
+    if (err) {
+      console.error(err.message);
+    }
+    console.log(`${row.id}: ${row.name} - ${row.age} years old`);
+  });
+});
+
+// 데이터베이스 연결 닫기
+db.close((err) => {
+  if (err) {
+    console.error(err.message);
+  }
+  console.log("Closed the database connection.");
+});
